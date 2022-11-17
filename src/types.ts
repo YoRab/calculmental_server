@@ -1,0 +1,65 @@
+
+import type { Socket } from "socket.io";
+
+
+export type ServerToTeacher = {
+    gameCreated: (code: string) => void
+    gameDestroyed: () => void
+    refreshPlayers: (players: Player[]) => void
+    gameStatusUpdated: (state: GameState) => void
+}
+
+export type ServerToStudent = {
+    gameNotFound: () => void;
+    gameDestroyed: () => void
+    playerCreated: (player: Player) => void
+    gameStatusUpdated: (state: GameState) => void
+}
+
+
+type TeacherToServer = {
+    createGame: () => void
+    destroyGame: (code: string) => void
+    startGame: (code: string) => void
+}
+
+export type StudentToServer = {
+    createPlayer: (code: string, pseudo: string) => void
+}
+
+export type ServerToClientEvents = ServerToTeacher & ServerToStudent
+export type ClientToServerEvents = TeacherToServer & StudentToServer
+
+export type InterServerEvents = {
+    ping: () => void;
+}
+
+export type SocketData = {}
+
+export type CustomSocket = Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>
+
+export type Team = {
+    id: number,
+    label: string
+}
+
+export type Player = {
+    id: string
+    pseudo: string
+    team: Team
+    heart: number
+    score: number
+}
+
+export type Teacher = {
+    id: string
+}
+
+export type GameState = 'ready' | 'starting' | 'running' | 'results'
+
+export type Game = {
+    code: string
+    teacher: Teacher
+    players: Player[]
+    state: GameState
+}
