@@ -6,14 +6,23 @@ export type ServerToTeacher = {
     gameCreated: (code: string) => void
     gameDestroyed: () => void
     refreshPlayers: (players: Player[]) => void
-    gameStatusUpdated: (state: GameState) => void
+    gameStatusUpdated: (state: GameState, chrono?: number) => void
+    teamScoreUpdated: (team0: number, team1: number) => void
 }
 
 export type ServerToStudent = {
     gameNotFound: () => void;
     gameDestroyed: () => void
     playerCreated: (player: Player) => void
-    gameStatusUpdated: (state: GameState) => void
+    gameStatusUpdated: (state: GameState, chrono?: number) => void
+    newQcm : (qcm : {
+        question: string;
+        answers: {
+            id: number;
+            value: string;
+            correct: boolean;
+        }[];
+    }) => void
 }
 
 
@@ -25,6 +34,8 @@ type TeacherToServer = {
 
 export type StudentToServer = {
     createPlayer: (code: string, pseudo: string) => void
+    askForQcm : (index: number) => void
+    updatePlayerStatus : (code:string, heart: number, score: number) => void
 }
 
 export type ServerToClientEvents = ServerToTeacher & ServerToStudent
