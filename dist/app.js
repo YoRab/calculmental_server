@@ -31,7 +31,7 @@ io.on("connection", (socket) => {
 const handleStudentEvent = (socket) => {
     socket.on("createPlayer", (code, pseudo) => {
         const game = games.get(code);
-        if (!!game) {
+        if (!!game && (game.state === "ready" || game.state === "starting")) {
             const players = game.players;
             const existingPlayers = players.find(player => player.id === socket.id);
             const team0Count = game.players.filter(player => player.team.id === 0).length;
@@ -53,6 +53,25 @@ const handleStudentEvent = (socket) => {
         else {
             socket.emit("gameNotFound");
         }
+    });
+    socket.on("updatePlayerStatus", (code, heart, score) => {
+        const game = games.get(code);
+        if (!!game) {
+            const newPlayers = game.players.map(player => {
+                if (player.id === socket.id) {
+                    return Object.assign(Object.assign({}, player), { heart, score });
+                }
+                return player;
+            });
+            const newGame = Object.assign(Object.assign({}, game), { players: newPlayers });
+            games.set(code, newGame);
+            const teacherSocket = sockets.get(game.teacher.id);
+            teacherSocket === null || teacherSocket === void 0 ? void 0 : teacherSocket.emit("refreshPlayers", newGame.players);
+            calculateTeamScore(newGame);
+        }
+    });
+    socket.on("askForQcm", (index) => {
+        socket.emit("newQcm", (0, utils_1.createQuestionAndAnswers)(index));
     });
 };
 const handleTeacherEvent = (socket) => {
@@ -83,8 +102,6 @@ const handleTeacherEvent = (socket) => {
     });
     socket.on("startGame", (code) => {
         const game = games.get(code);
-        console.log(game);
-        console.log(code);
         if ((game === null || game === void 0 ? void 0 : game.state) === 'ready') {
             game.state = 'starting';
             setTimeout(() => {
@@ -100,11 +117,54 @@ const handleTeacherEvent = (socket) => {
         }
     });
 };
+const calculateTeamScore = (game) => {
+    let team0Score = 0;
+    let team1Score = 0;
+    for (const player of game.players) {
+        if (player.team.id === 0) {
+            team0Score += player.score;
+        }
+        else if (player.team.id === 1) {
+            team1Score += player.score;
+        }
+    }
+    const teacherSocket = sockets.get(game.teacher.id);
+    teacherSocket === null || teacherSocket === void 0 ? void 0 : teacherSocket.emit("teamScoreUpdated", team0Score, team1Score);
+};
 const launchGame = (game) => {
     game.state = 'running';
     for (const player of game.players) {
         const playerSocketId = player.id;
         const playerSocket = sockets.get(playerSocketId);
+        playerSocket === null || playerSocket === void 0 ? void 0 : playerSocket.emit("gameStatusUpdated", game.state, constants_1.CHRONO_DURATION);
+    }
+    const teacherSocket = sockets.get(game.teacher.id);
+    teacherSocket === null || teacherSocket === void 0 ? void 0 : teacherSocket.emit("gameStatusUpdated", game.state, constants_1.CHRONO_DURATION);
+    setTimeout(() => {
+        resultGame(game.code);
+    }, constants_1.CHRONO_DURATION);
+};
+const resultGame = (code) => {
+    const game = games.get(code);
+    if (!game)
+        return;
+    game.state = 'results';
+    let team0Score = 0;
+    let team1Score = 0;
+    for (const player of game.players) {
+        if (player.team.id === 0) {
+            team0Score += player.score;
+        }
+        else if (player.team.id === 1) {
+            team1Score += player.score;
+        }
+    }
+    const sortedPlayers = game.players.sort((a, b) => b.score - a.score);
+    for (let i = 0; i < sortedPlayers.length; i++) {
+        const player = sortedPlayers[i];
+        const playerSocketId = player.id;
+        const playerSocket = sockets.get(playerSocketId);
+        playerSocket === null || playerSocket === void 0 ? void 0 : playerSocket.emit("resultSent", i + 1, player.score, team0Score, team1Score);
         playerSocket === null || playerSocket === void 0 ? void 0 : playerSocket.emit("gameStatusUpdated", game.state);
     }
     const teacherSocket = sockets.get(game.teacher.id);

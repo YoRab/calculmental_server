@@ -15,7 +15,7 @@ export type ServerToStudent = {
     gameDestroyed: () => void
     playerCreated: (player: Player) => void
     gameStatusUpdated: (state: GameState, chrono?: number) => void
-    newQcm : (qcm : {
+    newQcm: (qcm: {
         question: string;
         answers: {
             id: number;
@@ -23,6 +23,7 @@ export type ServerToStudent = {
             correct: boolean;
         }[];
     }) => void
+    resultSent: (rank: number, score: number, team0: number, team1: number) => void
 }
 
 
@@ -34,8 +35,8 @@ type TeacherToServer = {
 
 export type StudentToServer = {
     createPlayer: (code: string, pseudo: string) => void
-    askForQcm : (index: number) => void
-    updatePlayerStatus : (code:string, heart: number, score: number) => void
+    askForQcm: (index: number) => void
+    updatePlayerStatus: (code: string, heart: number, score: number) => void
 }
 
 export type ServerToClientEvents = ServerToTeacher & ServerToStudent
